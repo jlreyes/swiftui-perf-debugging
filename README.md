@@ -1,6 +1,6 @@
 # SwiftUI Perf Debugging
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that diagnoses scroll and animation jank in SwiftUI macOS/iOS apps. It uses Instruments `.trace` exports loaded into DuckDB to do **frame-by-frame** root cause analysis — not just "SwiftUI was slow."
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that diagnoses scroll and animation jank in SwiftUI macOS/iOS apps. It uses Instruments `.trace` exports loaded into DuckDB to do **frame-by-frame** root cause analysis.
 
 ## What it does
 
@@ -84,7 +84,7 @@ The skill produces a structured Markdown report:
 
 - macOS with Xcode / Instruments
 - [uv](https://github.com/astral-sh/uv) (for running the Python scripts)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or wherever you build
 
 ## License
 
