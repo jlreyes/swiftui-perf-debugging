@@ -1,83 +1,74 @@
-# Claude Instruments
+# SwiftUI Scroll & Animation Jank Diagnosis
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that gives Claude programmatic access to Apple Instruments trace data. Instruments is normally a GUI tool — this skill bridges the gap by exporting `.trace` files into DuckDB, where they can be queried with SQL.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that diagnoses scroll and animation jank in SwiftUI macOS/iOS apps. It uses a frame-first workflow to isolate interaction windows, rank dropped frames, attribute each hitch to SwiftUI updates, CPU work, GPU/render, or RunLoop contention, and produce a prioritized fix plan.
 
-## What it does
-
-Given an Instruments `.trace` file, this skill will:
-
-1. **Export** the trace to DuckDB + Parquet (via `export_to_duckdb.py`)
-2. **Explore** the exported tables — CPU profiling, hitches, hangs, signposts, Core Animation, SwiftUI updates, RunLoop activity, and more
-3. **Prepare** derived views for frame-level analysis (via `prepare_analysis.py`)
-4. **Analyze** performance data using SQL queries with full schema knowledge
-
-### Use-case example: SwiftUI scroll jank
-
-The included [scroll-animation.md](scroll-animation.md) companion workflow demonstrates the full power of the skill for diagnosing SwiftUI scroll and animation jank — isolating interaction windows, ranking dropped frames by severity, doing per-frame attribution across SwiftUI/CPU/GPU/RunLoop, cascade analysis, root cause clustering, and producing a prioritized fix plan.
+This is a use-case skill that builds on [claude-instruments](https://github.com/jlreyes/claude-instruments), which provides the Instruments → DuckDB export pipeline, scripts, and schema reference.
 
 ## Install
 
 ### As a Claude Code skill
 
+Install both the foundation and this skill:
+
 ```bash
-claude install-skill jlreyes/swiftui-perf-debugging
+claude install-skill jlreyes/claude-instruments
+claude install-skill jlreyes/swiftui-scroll-animation
 ```
 
 ### Manual
 
-Clone and copy the skill files into your project's `.claude/skills/` directory:
-
 ```bash
-git clone https://github.com/jlreyes/swiftui-perf-debugging.git
-cp -r swiftui-perf-debugging/. your-project/.claude/skills/claude-instruments/
+git clone https://github.com/jlreyes/claude-instruments.git
+cp -r claude-instruments/. your-project/.claude/skills/claude-instruments/
+
+git clone https://github.com/jlreyes/swiftui-scroll-animation.git
+cp -r swiftui-scroll-animation/. your-project/.claude/skills/swiftui-scroll-animation/
 ```
 
 ## Usage
 
-### 1. Record a trace
+### 1. Record and export a trace (via claude-instruments)
 
 ```bash
 xcrun xctrace record --template 'SwiftUI' --time-limit 20s \
   --output ./traces/recording.trace \
   --attach YourApp --no-prompt
-```
 
-Or use the included `PerfDebugging.tracetemplate` in Instruments.
-
-### 2. Export to DuckDB
-
-```bash
 ./scripts/export_to_duckdb.py traces/recording.trace traces/recording/analysis.duckdb
 ```
 
-Requires [uv](https://github.com/astral-sh/uv) (dependencies are managed inline via PEP 723).
+See [claude-instruments](https://github.com/jlreyes/claude-instruments) for full recording and export details.
 
-### 3. Ask Claude to analyze
-
-```
-Analyze the performance trace in traces/recording/analysis.duckdb.
-```
-
-For scroll/animation jank specifically:
+### 2. Ask Claude to diagnose
 
 ```
 Diagnose the scroll jank in traces/recording/analysis.duckdb.
 The laggy scroll happens around 10-20s in the trace.
 ```
 
+The skill walks through a structured workflow and produces a detailed report with root causes and a prioritized fix plan.
+
+## Example output
+
+The skill produces a structured Markdown report:
+
+- **Scope** — interaction type, mode (hitch vs smoothness), frame budget
+- **Dropped frame inventory** — severity buckets, worst frames table
+- **Frame deep dives** — per-frame attribution with evidence
+- **Root cause clusters** — deduplicated causes ranked by total impact
+- **Fix plan** — prioritized fixes with expected payoff and validation steps
+
 ## What's included
 
 | File | Description |
 |------|-------------|
-| `SKILL.md` | The skill prompt — general Instruments → DuckDB workflow |
-| `scroll-animation.md` | Companion workflow for SwiftUI scroll/animation jank diagnosis |
-| `SCHEMAS.md` | Full DuckDB schema reference for all exported tables |
-| `scripts/export_to_duckdb.py` | Exports Instruments `.trace` to DuckDB + Parquet |
-| `scripts/prepare_analysis.py` | Creates analysis views, frame summaries, cascade analysis |
-| `PerfDebugging.tracetemplate` | Instruments template for recording traces |
+| `SKILL.md` | The skill prompt — frame-first jank diagnosis workflow |
+
+Scripts, schemas, and the trace template live in [claude-instruments](https://github.com/jlreyes/claude-instruments).
 
 ## Requirements
 
+- [claude-instruments](https://github.com/jlreyes/claude-instruments) skill (provides export scripts, schemas, and trace template)
 - macOS with Xcode / Instruments
 - [uv](https://github.com/astral-sh/uv) (for running the Python scripts)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
